@@ -63,5 +63,5 @@ Dividends mechanism: any sum transfered to Dividends contract adress may be with
 
 # Created by 
 <p align="center">
-  <img width="240" height ="240" alt="Hyperion" src = "./assets/Hashlab.jpg">
+  <img width="240" height ="240" alt="Hashlab" src = "Rico/квадрат hd.png">
 </p>
