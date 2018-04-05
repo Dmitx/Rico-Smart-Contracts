@@ -443,11 +443,22 @@ contract DividendPayoutToken is AdminBurnableToken {
         // invoke super function with requires
         bool isTransferred = super.transferFrom(_from, _to, _value);
 
-        uint256 transferredClaims = dividendPayments[msg.sender].mul(_value).div(oldBalanceFrom);
+        uint256 transferredClaims = dividendPayments[_from].mul(_value).div(oldBalanceFrom);
         dividendPayments[_from] -= transferredClaims;
         dividendPayments[_to] += transferredClaims;
 
         return isTransferred;
+    }
+
+    function burnForRefund(address _burner, uint256 _value) onlyAdmin public {
+        // balance before burning tokens
+        uint256 oldBalance = balances[_burner];
+
+        super.burnForRefund(_burner, _value);
+
+        uint256 burnedClaims = dividendPayments[_burner].mul(_value).div(oldBalance);
+        dividendPayments[_burner] -= burnedClaims;
+        totalDividendPayments -= burnedClaims;
     }
 
 }
