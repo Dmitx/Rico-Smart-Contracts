@@ -61,6 +61,9 @@ Funds | Conditions
 ## [Dividends](???)
 Dividends mechanism: any sum transfered to Dividends contract adress may be withdrawn in appropriate to investor's token stake amount, i.e. 10% total tokens = 10% of total dividends. Tokens inherit dividends mechanism even if transfered to other person
 
+## [Success]
+Success for founders and team will be 42,857% of token emission left after Refund period
+
 # Created by 
 <p align="center">
   <img width="240" height ="240" alt="Hashlab" src = "logowhite.png">
