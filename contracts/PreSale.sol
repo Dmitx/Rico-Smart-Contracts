@@ -118,8 +118,12 @@ contract PreSale is Ownable, ReentrancyGuard {
     // Refund ether to the investors
     function refund() public refundAllowed nonReentrant {
         uint valueToReturn = balances[msg.sender];
-        balances[msg.sender] = 0;
 
+        // update states
+        balances[msg.sender] = 0;
+        weiRaised = weiRaised.sub(valueToReturn);
+
+        // burn tokens
         uint256 tokens = getTokenAmount(valueToReturn);
         tokens = tokens.add(tokens.mul(bonusPercent).div(100));
         token.burnForRefund(msg.sender, tokens);
@@ -128,11 +132,12 @@ contract PreSale is Ownable, ReentrancyGuard {
     }
 
     // Get amount of tokens
+    // @param value weis paid for tokens
     function getTokenAmount(uint256 _value) internal view returns (uint256) {
         return _value.mul(rate);
     }
 
-    // Send ether to the wallet
+    // Send weis to the wallet
     function forwardFunds(uint256 _value) internal {
         wallet.transfer(_value);
     }
@@ -159,7 +164,11 @@ contract PreSale is Ownable, ReentrancyGuard {
         tokens = tokens.add(tokens.mul(bonusPercent).div(100));
 
         token.mint(_beneficiary, tokens);
+
+        // update states
+        weiRaised = weiRaised.add(weiAmount);
         balances[_beneficiary] = balances[_beneficiary].add(weiAmount);
+
         TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
     }
 
