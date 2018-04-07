@@ -40,7 +40,7 @@ contract PreSale is Ownable, ReentrancyGuard {
     // Address where funds are transferred after success end of PreSale
     address public wallet;
 
-    // How many token units a buyer gets per 1 ether
+    // How many token units a buyer gets per wei
     uint256 public rate;
 
     uint256 public minimumInvest; // in wei
