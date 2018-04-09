@@ -101,7 +101,7 @@ contract PreSale is Ownable, ReentrancyGuard {
     }
 
     modifier isUnderHardCap() {
-        require(weiRaised <= hardCap);
+        require(weiRaised < hardCap);
         _;
     }
 
@@ -117,7 +117,7 @@ contract PreSale is Ownable, ReentrancyGuard {
 
     // Refund ether to the investors
     function refund() public refundAllowed nonReentrant {
-        uint valueToReturn = balances[msg.sender];
+        uint256 valueToReturn = balances[msg.sender];
 
         // update states
         balances[msg.sender] = 0;
