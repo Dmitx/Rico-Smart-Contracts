@@ -14,5 +14,12 @@ module.exports = function (deployer) {
         return deployer.deploy(Crowdsale, nowTimestamp, wallet, Rico.address, Presale.address, 150000000000000);
     }).then(function () {
         return deployer.deploy(DividendDistributor, Rico.address);
+
+    }).then(function() {
+        return Rico.deployed();
+    }).then(function (tokenInstance) {
+        tokenInstance.addAdmin(Presale.address);
+        tokenInstance.addAdmin(Crowdsale.address);
+        return tokenInstance.addAdmin(DividendDistributor.address);
     })
 };
