@@ -47,22 +47,22 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
 
     describe('creating a valid rICO', function () {
         it('should fail with zero token address', async function () {
-            rICO.new(
+            await rICO.new(
                 this.endTimePreSale, wallet, 0, this.preSale.address, minimumInvest, { from: owner }
-            ).should.be.rejectedWith('revert');
+            ).should.be.rejectedWith(Error);
         });
     });
 
     describe('check hasEnded method', function () {
         it('should return false with rICO event not ended', async function () {
-            this.rICO.hasEnded().then(result => {
+            await this.rICO.hasEnded().then(result => {
                 result.should.be.false
             });
         });
 
         it('should return true with rICO event ended', async function () {
             await increaseTimeTo(this.endTimerICO + duration.days(200));
-            this.rICO.hasEnded().then(result => {
+            await this.rICO.hasEnded().then(result => {
                 result.should.be.true
             });
         });
@@ -71,7 +71,7 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
     describe('withdrowal', function () {
 
         it('should fail due to wei raised < soft cap', async function () {
-            this.rICO.withdrawal().should.be.rejectedWith('revert');
+            await this.rICO.withdrawal().should.be.rejectedWith('revert');
         });
 
     });
@@ -79,7 +79,7 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
     describe('finishCrowdsale', function () {
 
         it('should fail due to wei raised < soft cap', async function () {
-            this.rICO.finishCrowdSale().should.be.rejectedWith('revert');
+            await this.rICO.finishCrowdSale().should.be.rejectedWith('revert');
         });
 
     });
@@ -87,15 +87,15 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
     describe('payable method', function () {
 
         it('should fail with beneficiary 0', async function () {
-            this.rICO.sendTransaction({ from: 0, value: web3.toWei(500, "ether"), gas: "220000" }).should.be.rejectedWith('revert');
+            await this.rICO.sendTransaction({ from: 0, value: web3.toWei(500, "ether"), gas: "220000" }).should.be.rejectedWith(Error);
         });
 
         it('should fail with value < minimumInvest', async function () {
-            this.rICO.sendTransaction({ from: web3.eth.accounts[0], value: 10, gas: "220000"}).should.be.rejectedWith('revert');
+            await this.rICO.sendTransaction({ from: web3.eth.accounts[0], value: 10, gas: "220000"}).should.be.rejectedWith('revert');
         });
 
         it('should pass with value minimumInvest', async function () {
-            this.rICO.sendTransaction({ from: web3.eth.accounts[0], value: web3.toWei(10, "ether"), gas: "220000" }).should.be.fulfilled;
+            await this.rICO.sendTransaction({ from: web3.eth.accounts[0], value: web3.toWei(10, "ether"), gas: "220000" }).should.be.fulfilled;
         });
 
     });
