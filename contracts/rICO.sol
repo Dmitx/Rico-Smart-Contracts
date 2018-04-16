@@ -136,7 +136,9 @@ contract rICO is Ownable, ReentrancyGuard {
     }
 
     // Update of reservedWei for withdraw
-    function updateReservedWei() public successRefundAllowed {
+    function updateReservedWei() public {
+        require(weiRaised.add(preSale.weiRaised()) >= softCap && now > endCrowdSaleTime);
+
         uint256 curWei;
 
         if (!firstStageRefund && now > endCrowdSaleTime) {
@@ -216,7 +218,6 @@ contract rICO is Ownable, ReentrancyGuard {
 
     // Withdrawal eth to owner
     function withdrawal() public onlyOwner {
-        require(weiRaised.add(preSale.weiRaised()) >= softCap && now > endCrowdSaleTime);
 
         updateReservedWei();
 
@@ -227,7 +228,7 @@ contract rICO is Ownable, ReentrancyGuard {
 
     // Success finish of CrowdSale
     function finishCrowdSale() public onlyOwner {
-        require(weiRaised.add(preSale.weiRaised()) >= softCap && now > endRefundableTime);
+        require(now > endRefundableTime);
 
         // withdrawal all eth from contract
         updateReservedWei();
