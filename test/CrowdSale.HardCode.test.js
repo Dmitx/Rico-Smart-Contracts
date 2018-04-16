@@ -58,7 +58,7 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
             await this.rICO.sendTransaction({ from: web3.eth.accounts[3], value: web3.toWei(5, "ether"), gas: "220000" });
             await increaseTimeTo(this.endTimerICO);
 
-            this.rICO.withdrawal({from: owner}).should.be.fulfilled;
+            await this.rICO.withdrawal({from: owner}).should.be.fulfilled;
         });
 
     });
@@ -79,12 +79,6 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
         it('updateReservedWei() should fail due to no endTime of CrowdSale', async function () {
             await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(16, "ether"), gas: "220000"});
             await increaseTimeTo(this.startTimerICO + duration.days(10));
-            await this.rICO.updateReservedWei({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
-        });
-
-        it('updateReservedWei() should fail due to endRefundableTime', async function () {
-            await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(16, "ether"), gas: "220000"});
-            await increaseTimeTo(this.startTimerICO + duration.days(155));
             await this.rICO.updateReservedWei({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
         });
 

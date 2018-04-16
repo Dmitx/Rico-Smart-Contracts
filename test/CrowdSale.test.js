@@ -74,6 +74,15 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
             await this.rICO.withdrawal().should.be.rejectedWith('revert');
         });
 
+        it('should pass due to wei raised > soft cap', async function () {
+            await this.rICO.sendTransaction({ from: web3.eth.accounts[0], value: web3.toWei(500, "ether"), gas: "220000"});
+            await this.rICO.sendTransaction({ from: web3.eth.accounts[1], value: web3.toWei(500, "ether"), gas: "220000" });
+            await this.rICO.sendTransaction({ from: web3.eth.accounts[2], value: web3.toWei(500, "ether"), gas: "220000" });
+            await this.rICO.sendTransaction({ from: web3.eth.accounts[3], value: web3.toWei(500, "ether"), gas: "220000" });
+            await increaseTimeTo(this.endTimerICO);
+            await this.rICO.withdrawal({from: owner}).should.be.fulfilled;
+        });
+
     });
 
     describe('finishCrowdsale', function () {
@@ -132,6 +141,12 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
             await this.rICO.refundPart({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
         });
 
+        it('refundPart() should pass', async function () {
+            await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1600, "ether"), gas: "220000"});
+            await increaseTimeTo(this.startTimerICO + duration.days(100));
+            await this.rICO.refundPart({from: web3.eth.accounts[2]}).should.be.fulfilled;
+        });
+
     });
 
 
@@ -141,6 +156,18 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
             await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
             await increaseTimeTo(this.startTimerICO + duration.days(120));
             await this.rICO.updateReservedWei({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
+        });
+
+        it('updateReservedWei() should fail due to no endTime of CrowdSale', async function () {
+            await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1600, "ether"), gas: "220000"});
+            await increaseTimeTo(this.startTimerICO + duration.days(10));
+            await this.rICO.updateReservedWei({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
+        });
+
+        it('updateReservedWei() should pass', async function () {
+            await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1600, "ether"), gas: "220000"});
+            await increaseTimeTo(this.startTimerICO + duration.days(120));
+            await this.rICO.updateReservedWei({from: web3.eth.accounts[2]}).should.be.fulfilled;
         });
 
     });
