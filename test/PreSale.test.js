@@ -2,7 +2,6 @@ import ether from './helpers/ether';
 import {advanceBlock} from './helpers/advanceToBlock';
 import {increaseTimeTo, duration} from './helpers/increaseTime';
 import latestTime from './helpers/latestTime';
-import EVMRevert from './helpers/EVMRevert';
 
 const BigNumber = web3.BigNumber;
 
@@ -14,11 +13,14 @@ require('chai')
 var chai = require('chai');
 var assert = chai.assert;
 
-const PreSaleInterface = artifacts.require('./PreSale.sol');
-const TokenInterface = artifacts.require('./RicoToken.sol');
 
-contract('PreSaleTest', function ([_, owner, investor, wallet, purchaser]) {
-    const value = ether(42);
+const RicoToken = artifacts.require('RicoToken');
+const PreSale = artifacts.require("PreSale");
+
+
+contract('PreSaleTest', function ([_, owner, investor, wallet, otherAccount]) {
+
+    const minimumInvest = 10000;
 
     before(async function () {
         // Advance to the next block to correctly read time in the solidity "now" function interpreted by ganache
@@ -26,115 +28,93 @@ contract('PreSaleTest', function ([_, owner, investor, wallet, purchaser]) {
     });
 
     beforeEach(async function () {
-        this.openingTime = latestTime() + duration.weeks(1);
-        this.periodTimeInDays = 30;
-        this.afterClosingTime = this.openingTime + duration.days(this.periodTimeInDays) + duration.seconds(1);
-        this.token = await TokenInterface.new();
-        this.minimumInvest = ether(15);
-        this.preSale = await PreSaleInterface.new(this.openingTime, this.periodTimeInDays, wallet, this.token.address, this.minimumInvest);
-    });
+        this.startTime = latestTime();
+        this.period = 100;
+        this.endTime = this.startTime + duration.days(this.period) + duration.seconds(1);
 
-    describe('right deploy PreSale contract', function () {
+        this.token =  await RicoToken.new();
+        this.preSale = await PreSale.new(
+            this.startTime, this.period, wallet, this.token.address, minimumInvest, { from: owner }
+        );
 
-        it("token's admin should be PreSale Contract", async () => {
-            let tokenInstance = await TokenInterface.deployed();
-            let preSaleInstance = await PreSaleInterface.deployed();
-
-            // unnecessary because add PreSale to admin in migrations
-            // await tokenInstance.addAdmin(preSaleInstance.address);
-
-            let isAdmin = await tokenInstance.isAdmin(preSaleInstance.address);
-            console.log(isAdmin);
-            assert.equal(true, isAdmin);
-        });
-
-    });
-
-    describe('valid end of PreSale', function () {
-
-        it('should be ended only after end', async function () {
-            let ended = await this.preSale.hasEnded();
-            assert.equal(ended, false);
-            await increaseTimeTo(this.afterClosingTime);
-            ended = await this.preSale.hasEnded();
-            assert.equal(ended, true);
-        });
-
+        await this.token.addAdmin(this.preSale.address);
     });
 
     describe('creating a valid PreSale', function () {
-
         it('should fail with zero period', async function () {
-            await PreSaleInterface.new(
-                this.startTime, 0, wallet, this.token.address, this.minimumInvest, {from: owner}
+            await PreSale.new(
+                this.startTime, 0, wallet, this.token.address, minimumInvest, { from: owner }
             ).should.be.rejectedWith('revert');
         });
 
         it('should fail with zero token address', async function () {
-            await PreSaleInterface.new(
-                this.startTime, this.period, wallet, 0, this.minimumInvest, {from: owner}
-            ).should.be.rejectedWith('revert');
+            await PreSale.new(
+                this.startTime, this.period, wallet, 0, minimumInvest, { from: owner }
+            ).should.be.rejectedWith(Error);
         });
-
     });
 
-    describe('accepting payments', function () {
-        it('should reject payments before start', async function () {
-            await this.preSale.sendTransaction({ value: value, from: investor }).should.be.rejectedWith(EVMRevert);
-        });
-
-        it('should accept payments after start', async function () {
-            await increaseTimeTo(this.openingTime);
-            await this.preSale.sendTransaction({ value: value, from: investor }).should.be.fulfilled;
-        });
-
-        it('should reject payments after end', async function () {
-            await increaseTimeTo(this.afterClosingTime);
-            await this.preSale.sendTransaction({ value: value, from: investor }).should.be.rejectedWith(EVMRevert);
+    describe('check hasEnded method', function () {
+        it('should return false with presale event not ended', async function () {
+            await this.preSale.hasEnded().then(result => {
+                result.should.be.false
+            });
         });
     });
 
     describe('payable method', function () {
 
-        it('should fail with buy tokens from zero address', async function () {
-            this.preSale.sendTransaction({value: value, from: 0}).should.be.rejectedWith(EVMRevert);
+        it('should fail with beneficiary 0', async function () {
+            await this.preSale.sendTransaction({ value: minimumInvest, from: 0 }).should.be.rejectedWith(Error);
         });
 
         it('should fail with value < minimumInvest', async function () {
-            this.preSale.sendTransaction({value: 10, from: investor}).should.be.rejectedWith(EVMRevert);
+            await this.preSale.sendTransaction({ value: 10, from: investor }).should.be.rejectedWith('revert');
         });
 
         it('should pass with value minimumInvest', async function () {
-            this.preSale.sendTransaction({ value: this.minimumInvest, from: investor }).should.be.fulfilled;
+            await this.preSale.sendTransaction({ value: minimumInvest, from: owner }).should.be.fulfilled;
         });
+
     });
 
-    describe('finish preSale method', function () {
+    describe('finish PreSale method', function () {
 
         it('should fail with wei not raised', async function () {
-            this.preSale.finishPreSale().should.be.rejectedWith('revert');
+            await this.preSale.finishPreSale().should.be.rejectedWith('revert');
         });
 
-        it('should pass with wei raised and time reached end time', async function () {
-            await this.preSale.sendTransaction({ value: value, from: investor });
-            await increaseTimeTo(this.afterClosingTime );
-            await this.preSale.finishPreSale().should.be.fulfilled;
+        it('should pass due to hardcap', async function () {
+            await this.token.addAdmin(this.preSale.address);
+            await this.preSale.sendTransaction({from: web3.eth.accounts[1], value: web3.toWei(600, "ether"), gas: "220000"});
+            await this.preSale.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1000, "ether"), gas: "220000"});
+            await this.preSale.finishPreSale({from: owner}).should.be.fulfilled;
         });
+
+        it('should pass due to endTime', async function () {
+            await this.token.addAdmin(this.preSale.address);
+            await this.preSale.sendTransaction({from: web3.eth.accounts[1], value: web3.toWei(500, "ether"), gas: "220000"});
+            await this.preSale.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(500, "ether"), gas: "220000"});
+            await increaseTimeTo(this.endTime);
+            await this.preSale.finishPreSale({from: owner}).should.be.fulfilled;
+        });
+
 
     });
 
     describe('refund method', function () {
 
-        it('should fail with reach end time for preSale', async function () {
-            this.preSale.refund().should.be.rejectedWith('revert');
+        it('should fail with no end time for PreSale', async function () {
+            await this.preSale.refund().should.be.rejectedWith('revert');
         });
 
         it('should pass with increasing time to endTime', async function () {
-            await this.preSale.sendTransaction({ value: minimumInvest, from: owner });
-            await increaseTimeTo(this.afterClosingTime );
-            await this.preSale.refund();
+            await this.token.addAdmin(this.preSale.address);
+            await this.preSale.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
+            await increaseTimeTo(this.endTime);
+            await this.preSale.refund({from: web3.eth.accounts[2]}).should.be.fulfilled;
         });
 
     });
 
-});
+})
