@@ -261,100 +261,12 @@ contract Ownable {
 
 
 /**
- * @title Manageable
- * @dev The Manageable contract has addresses of admins, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
- */
-contract Manageable is Ownable {
-
-    mapping(address => bool) private admins;
-
-    event AdminAdded(address indexed addr);
-    event AdminRemoved(address indexed addr);
-
-    /**
-     * @dev The Manageable constructor sets msg.sender as admin by default.
-     */
-    function Manageable() public {
-        addRoleAdmin(msg.sender);
-    }
-
-    /**
-     * @dev Allows the current owner to transfer control of the contract to a newOwner.
-     * @param newOwner The address to transfer ownership to.
-     */
-    function transferOwnership(address newOwner) public onlyOwner {
-        address prevOwner = owner;
-        super.transferOwnership(newOwner);
-
-        // Set new owner as admin and remove previous owner from admins.
-        addRoleAdmin(newOwner);
-        removeRoleAdmin(prevOwner);
-    }
-
-    /**
-     * @dev add an admin to an address
-     * @param addr address
-     */
-    function addAdmin(address addr) public onlyOwner {
-        addRoleAdmin(addr);
-    }
-
-    /**
-     * @dev remove an admin from an address
-     * @param addr address
-     */
-    function removeAdmin(address addr) public onlyOwner {
-        removeRoleAdmin(addr);
-    }
-
-    /**
-     * @dev check if an address is an admin
-     * @return bool
-     */
-    function isAdmin(address addr) view public returns (bool) {
-        return admins[addr];
-    }
-
-    /**
-     * @dev add an admin to an address
-     * @param addr address
-     */
-    function addRoleAdmin(address addr) private {
-        require(addr != address(0));
-        admins[addr] = true;
-        AdminAdded(addr);
-    }
-
-    /**
-     * @dev remove an admin from an address
-     * @param addr address
-     */
-    function removeRoleAdmin(address addr) private {
-        require(addr != address(0));
-        admins[addr] = false;
-        AdminRemoved(addr);
-    }
-
-    /**
-     * @dev modifier to scope access to admins
-     * // reverts
-     */
-    modifier onlyAdmin() {
-        require(isAdmin(msg.sender));
-        _;
-    }
-
-}
-
-
-/**
  * @title Mintable token
  * @dev Simple ERC20 Token example, with mintable token creation
  * @dev Issue: * https://github.com/OpenZeppelin/zeppelin-solidity/issues/120
  * Based on code by TokenMarketNet: https://github.com/TokenMarketNet/ico/blob/master/contracts/MintableToken.sol
  */
-contract MintableToken is StandardToken, Manageable {
+contract MintableToken is StandardToken, Ownable {
 
     event Mint(address indexed to, uint256 amount);
     event MintFinished();
@@ -372,7 +284,7 @@ contract MintableToken is StandardToken, Manageable {
      * @param _amount The amount of tokens to mint.
      * @return A boolean that indicates if the operation was successful.
      */
-    function mint(address _to, uint256 _amount) onlyAdmin canMint public returns (bool) {
+    function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
         totalSupply_ = totalSupply_.add(_amount);
         balances[_to] = balances[_to].add(_amount);
         Mint(_to, _amount);
@@ -393,12 +305,26 @@ contract MintableToken is StandardToken, Manageable {
 }
 
 
-contract AdminBurnableToken is MintableToken {
+/**
+ * @title Burnable Token
+ * @dev Token that can be irreversibly burned (destroyed).
+ */
+contract BurnableToken is BasicToken {
 
     event Burn(address indexed burner, uint256 value);
 
-    function burnForRefund(address _burner, uint256 _value) onlyAdmin public {
+    /**
+     * @dev Burns a specific amount of tokens.
+     * @param _value The amount of token to be burned.
+     */
+    function burn(uint256 _value) public {
+        _burn(msg.sender, _value);
+    }
+
+    function _burn(address _burner, uint256 _value) internal {
         require(_value <= balances[_burner]);
+        // no need to require value <= totalSupply, since that would imply the
+        // sender's balance is greater than the totalSupply, which *should* be an assertion failure
 
         balances[_burner] = balances[_burner].sub(_value);
         totalSupply_ = totalSupply_.sub(_value);
@@ -408,7 +334,8 @@ contract AdminBurnableToken is MintableToken {
 
 }
 
-contract DividendPayoutToken is AdminBurnableToken {
+
+contract DividendPayoutToken is BurnableToken, MintableToken {
 
     // Dividends already claimed by investor
     mapping(address => uint256) public dividendPayments;
@@ -416,7 +343,7 @@ contract DividendPayoutToken is AdminBurnableToken {
     uint256 public totalDividendPayments;
 
     // invoke this function after each dividend payout
-    function increaseDividendPayments(address _investor, uint256 _amount) onlyAdmin public {
+    function increaseDividendPayments(address _investor, uint256 _amount) onlyOwner public {
         dividendPayments[_investor] += _amount;
         totalDividendPayments += _amount;
     }
@@ -450,15 +377,19 @@ contract DividendPayoutToken is AdminBurnableToken {
         return isTransferred;
     }
 
-    function burnForRefund(address _burner, uint256 _value) onlyAdmin public {
+    function burn(uint256 _value) public {
+        address burner = msg.sender;
+
         // balance before burning tokens
-        uint256 oldBalance = balances[_burner];
+        uint256 oldBalance = balances[burner];
 
-        super.burnForRefund(_burner, _value);
+        super.burn(_value);
 
-        uint256 burnedClaims = dividendPayments[_burner].mul(_value).div(oldBalance);
-        dividendPayments[_burner] -= burnedClaims;
+        uint256 burnedClaims = dividendPayments[burner].mul(_value).div(oldBalance);
+        dividendPayments[burner] -= burnedClaims;
         totalDividendPayments -= burnedClaims;
+
+        SaleInterface(owner).refund(burner);
     }
 
 }
@@ -470,5 +401,13 @@ contract RicoToken is DividendPayoutToken {
     string public constant symbol = "Rico";
 
     uint8 public constant decimals = 18;
+
+}
+
+
+// Interface for PreSale and CrowdSale contracts with refund function
+contract SaleInterface {
+
+    function refund(address _to) public;
 
 }

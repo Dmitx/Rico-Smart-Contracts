@@ -32,6 +32,7 @@ contract PreSale is Ownable, ReentrancyGuard {
 
     // The token being sold
     RicoToken public token;
+    address tokenContractAddress;
 
     // start and end timestamps where investments are allowed (both inclusive)
     uint256 public startTime;
@@ -81,6 +82,7 @@ contract PreSale is Ownable, ReentrancyGuard {
 
         wallet = _wallet;
         token = RicoToken(_token);
+        tokenContractAddress = _token;
 
         // minimumInvest in wei
         minimumInvest = _minimumInvest;
@@ -115,20 +117,17 @@ contract PreSale is Ownable, ReentrancyGuard {
         return now > endTime;
     }
 
-    // Refund ether to the investors
-    function refund() public refundAllowed nonReentrant {
-        uint256 valueToReturn = balances[msg.sender];
+    // Refund ether to the investors (invoke from only token)
+    function refund(address _to) public refundAllowed {
+        require(msg.sender == tokenContractAddress);
+
+        uint256 valueToReturn = balances[_to];
 
         // update states
-        balances[msg.sender] = 0;
+        balances[_to] = 0;
         weiRaised = weiRaised.sub(valueToReturn);
 
-        // burn tokens
-        uint256 tokens = getTokenAmount(valueToReturn);
-        tokens = tokens.add(tokens.mul(bonusPercent).div(100));
-        token.burnForRefund(msg.sender, tokens);
-
-        msg.sender.transfer(valueToReturn);
+        _to.transfer(valueToReturn);
     }
 
     // Get amount of tokens
@@ -152,6 +151,7 @@ contract PreSale is Ownable, ReentrancyGuard {
         }
 
         forwardFunds(this.balance);
+        token.transferOwnership(owner);
     }
 
     // low level token purchase function
@@ -174,6 +174,5 @@ contract PreSale is Ownable, ReentrancyGuard {
 
     function() external payable {
         buyTokens(msg.sender);
-        /// check
     }
 }

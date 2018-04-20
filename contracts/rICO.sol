@@ -9,6 +9,7 @@ contract rICO is Ownable, ReentrancyGuard {
 
     // The token being sold
     RicoToken public token;
+    address tokenContractAddress;
 
     // PreSale
     PreSale public preSale;
@@ -72,6 +73,7 @@ contract rICO is Ownable, ReentrancyGuard {
 
         wallet = _wallet;
         token = RicoToken(_token);
+        tokenContractAddress = _token;
         preSale = PreSale(_preSale);
 
         // minimumInvest in wei
@@ -93,18 +95,6 @@ contract rICO is Ownable, ReentrancyGuard {
 
     modifier isUnderHardCap() {
         require(weiRaised.add(preSale.weiRaised()) < hardCap);
-        _;
-    }
-
-    // unsuccessful end of CrowdSale
-    modifier refundAllowed() {
-        require(weiRaised.add(preSale.weiRaised()) < softCap && now > endCrowdSaleTime);
-        _;
-    }
-
-    // successful end of CrowdSale
-    modifier successRefundAllowed() {
-        require(weiRaised.add(preSale.weiRaised()) >= softCap && now > endCrowdSaleTime && now <= endRefundableTime);
         _;
     }
 
@@ -168,41 +158,53 @@ contract rICO is Ownable, ReentrancyGuard {
 
     }
 
+    // Refund ether to the investors (invoke from only token)
+    function refund(address _to) public {
+        require(msg.sender == tokenContractAddress);
+        require(weiRaised.add(preSale.weiRaised()) < softCap && now > endCrowdSaleTime
+        || weiRaised.add(preSale.weiRaised()) >= softCap && now > endCrowdSaleTime && now <= endRefundableTime);
+
+
+        // unsuccessful end of CrowdSale
+        if (weiRaised.add(preSale.weiRaised()) < softCap && now > endCrowdSaleTime) {
+            refundAll(_to);
+            return;
+        }
+
+        // successful end of CrowdSale
+        if (weiRaised.add(preSale.weiRaised()) >= softCap && now > endCrowdSaleTime && now <= endRefundableTime) {
+            refundPart(_to);
+            return;
+        }
+
+    }
+
     // Refund ether to the investors in case of unsuccessful end of CrowdSale
-    function refund() public refundAllowed nonReentrant {
-        uint256 valueToReturn = balances[msg.sender];
-        uint256 tokensToReturn = balancesInToken[msg.sender];
+    function refundAll(address _to) internal {
+        uint256 valueToReturn = balances[_to];
 
         // update states
-        balances[msg.sender] = 0;
-        balancesInToken[msg.sender] = 0;
+        balances[_to] = 0;
+        balancesInToken[_to] = 0;
         weiRaised = weiRaised.sub(valueToReturn);
 
-        // burn tokens
-        token.burnForRefund(msg.sender, tokensToReturn);
-
-        msg.sender.transfer(valueToReturn);
+        _to.transfer(valueToReturn);
     }
 
     // Refund part of ether to the investors in case of successful end of CrowdSale
-    function refundPart() public successRefundAllowed nonReentrant {
-        uint256 valueToReturn = balances[msg.sender];
-        uint256 tokensToReturn = balancesInToken[msg.sender];
+    function refundPart(address _to) internal {
+        uint256 valueToReturn = balances[_to];
 
         // get real value to return
         updateReservedWei();
         valueToReturn = getRealValueToReturn(valueToReturn);
 
         // update states
-        balances[msg.sender] = 0;
-        balancesInToken[msg.sender] = 0;
+        balances[_to] = 0;
+        balancesInToken[_to] = 0;
         restWei = restWei.sub(valueToReturn);
 
-        // burn tokens
-        token.burnForRefund(msg.sender, tokensToReturn);
-
-        msg.sender.transfer(valueToReturn);
-
+        _to.transfer(valueToReturn);
     }
 
     // Get amount of tokens
@@ -237,6 +239,8 @@ contract rICO is Ownable, ReentrancyGuard {
 
         // mint tokens to owner - wallet
         token.mint(wallet, token.totalSupply().mul(42857).div(57143));
+        token.finishMinting();
+        token.transferOwnership(owner);
     }
 
     // low level token purchase function
