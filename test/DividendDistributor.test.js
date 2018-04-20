@@ -39,8 +39,8 @@ contract('DividendDistributor', function ([_, owner, investor, wallet, accounts]
             this.startTimePreSale, this.periodPreSale, wallet, this.token.address, minimumInvest, { from: owner }
         );
 
-        await this.token.addAdmin(this.preSale.address);
-        await this.token.addAdmin(this.dividendDistributor.address);
+        await this.token.transferOwnership(this.preSale.address);
+        // await this.token.addAdmin(this.dividendDistributor.address);
 
         await this.preSale.sendTransaction({from: web3.eth.accounts[1], value: web3.toWei(1, "ether"), gas: "220000"});
         await this.dividendDistributor.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(10, "ether"), gas: "220000"});

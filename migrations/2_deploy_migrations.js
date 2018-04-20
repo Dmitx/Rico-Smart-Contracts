@@ -18,8 +18,8 @@ module.exports = function (deployer) {
     }).then(function() {
         return Rico.deployed();
     }).then(function (tokenInstance) {
-        tokenInstance.addAdmin(Presale.address);
-        tokenInstance.addAdmin(Crowdsale.address);
-        return tokenInstance.addAdmin(DividendDistributor.address);
+        return tokenInstance.transferOwnership(Presale.address);
+        // tokenInstance.transferOwnership(Crowdsale.address);
+        // return tokenInstance.addAdmin(DividendDistributor.address);
     })
 };

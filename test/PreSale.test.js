@@ -37,7 +37,7 @@ contract('PreSaleTest', function ([_, owner, investor, wallet, otherAccount]) {
             this.startTime, this.period, wallet, this.token.address, minimumInvest, { from: owner }
         );
 
-        await this.token.addAdmin(this.preSale.address);
+        await this.token.transferOwnership(this.preSale.address);
     });
 
     describe('creating a valid PreSale', function () {
@@ -85,14 +85,14 @@ contract('PreSaleTest', function ([_, owner, investor, wallet, otherAccount]) {
         });
 
         it('should pass due to hardcap', async function () {
-            await this.token.addAdmin(this.preSale.address);
+            // await this.token.addAdmin(this.preSale.address);
             await this.preSale.sendTransaction({from: web3.eth.accounts[1], value: web3.toWei(600, "ether"), gas: "220000"});
             await this.preSale.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1000, "ether"), gas: "220000"});
             await this.preSale.finishPreSale({from: owner}).should.be.fulfilled;
         });
 
         it('should pass due to endTime', async function () {
-            await this.token.addAdmin(this.preSale.address);
+            // await this.token.addAdmin(this.preSale.address);
             await this.preSale.sendTransaction({from: web3.eth.accounts[1], value: web3.toWei(500, "ether"), gas: "220000"});
             await this.preSale.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(500, "ether"), gas: "220000"});
             await increaseTimeTo(this.endTime);
@@ -105,14 +105,14 @@ contract('PreSaleTest', function ([_, owner, investor, wallet, otherAccount]) {
     describe('refund method', function () {
 
         it('should fail with no end time for PreSale', async function () {
-            await this.preSale.refund().should.be.rejectedWith('revert');
+            await this.token.refund().should.be.rejectedWith('revert');
         });
 
         it('should pass with increasing time to endTime', async function () {
-            await this.token.addAdmin(this.preSale.address);
+            // await this.token.addAdmin(this.preSale.address);
             await this.preSale.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
             await increaseTimeTo(this.endTime);
-            await this.preSale.refund({from: web3.eth.accounts[2]}).should.be.fulfilled;
+            await this.token.refund({from: web3.eth.accounts[2]}).should.be.fulfilled;
         });
 
     });
