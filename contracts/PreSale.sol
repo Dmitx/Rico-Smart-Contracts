@@ -174,5 +174,6 @@ contract PreSale is Ownable, ReentrancyGuard {
 
     function() external payable {
         buyTokens(msg.sender);
+        /// check
     }
 }
