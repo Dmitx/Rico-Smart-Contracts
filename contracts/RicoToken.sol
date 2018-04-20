@@ -313,14 +313,6 @@ contract BurnableToken is BasicToken {
 
     event Burn(address indexed burner, uint256 value);
 
-    /**
-     * @dev Burns a specific amount of tokens.
-     * @param _value The amount of token to be burned.
-     */
-    function burn(uint256 _value) public {
-        _burn(msg.sender, _value);
-    }
-
     function _burn(address _burner, uint256 _value) internal {
         require(_value <= balances[_burner]);
         // no need to require value <= totalSupply, since that would imply the
@@ -377,15 +369,15 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
         return isTransferred;
     }
 
-    function burn(uint256 _value) public {
+    function burn() public {
         address burner = msg.sender;
 
         // balance before burning tokens
         uint256 oldBalance = balances[burner];
 
-        super.burn(_value);
+        super._burn(burner, oldBalance);
 
-        uint256 burnedClaims = dividendPayments[burner].mul(_value).div(oldBalance);
+        uint256 burnedClaims = dividendPayments[burner];
         dividendPayments[burner] -= burnedClaims;
         totalDividendPayments -= burnedClaims;
 
