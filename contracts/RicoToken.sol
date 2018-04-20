@@ -336,8 +336,8 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
 
     // invoke this function after each dividend payout
     function increaseDividendPayments(address _investor, uint256 _amount) onlyOwner public {
-        dividendPayments[_investor] += _amount;
-        totalDividendPayments += _amount;
+        dividendPayments[_investor] = dividendPayments[_investor].add(_amount);
+        totalDividendPayments = totalDividendPayments.add(_amount);
     }
 
     //When transfer tokens decrease dividendPayments for sender and increase for receiver
@@ -349,8 +349,8 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
         bool isTransferred = super.transfer(_to, _value);
 
         uint256 transferredClaims = dividendPayments[msg.sender].mul(_value).div(oldBalanceFrom);
-        dividendPayments[msg.sender] -= transferredClaims;
-        dividendPayments[_to] += transferredClaims;
+        dividendPayments[msg.sender] = dividendPayments[msg.sender].sub(transferredClaims);
+        dividendPayments[_to] = dividendPayments[_to].add(transferredClaims);
 
         return isTransferred;
     }
@@ -363,8 +363,8 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
         bool isTransferred = super.transferFrom(_from, _to, _value);
 
         uint256 transferredClaims = dividendPayments[_from].mul(_value).div(oldBalanceFrom);
-        dividendPayments[_from] -= transferredClaims;
-        dividendPayments[_to] += transferredClaims;
+        dividendPayments[_from] = dividendPayments[_from].sub(transferredClaims);
+        dividendPayments[_to] = dividendPayments[_to].add(transferredClaims);
 
         return isTransferred;
     }
@@ -378,8 +378,8 @@ contract DividendPayoutToken is BurnableToken, MintableToken {
         super._burn(burner, oldBalance);
 
         uint256 burnedClaims = dividendPayments[burner];
-        dividendPayments[burner] -= burnedClaims;
-        totalDividendPayments -= burnedClaims;
+        dividendPayments[burner] = dividendPayments[burner].sub(burnedClaims);
+        totalDividendPayments = totalDividendPayments.sub(burnedClaims);
 
         SaleInterface(owner).refund(burner);
     }
