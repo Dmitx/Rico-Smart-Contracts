@@ -105,14 +105,14 @@ contract('PreSaleTest', function ([_, owner, investor, wallet, otherAccount]) {
     describe('refund method', function () {
 
         it('should fail with no end time for PreSale', async function () {
-            await this.token.refund().should.be.rejectedWith('revert');
+            await this.token.burn().should.be.rejectedWith('revert');
         });
 
         it('should pass with increasing time to endTime', async function () {
             // await this.token.addAdmin(this.preSale.address);
             await this.preSale.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
             await increaseTimeTo(this.endTime);
-            await this.token.refund({from: web3.eth.accounts[2]}).should.be.fulfilled;
+            await this.token.burn({from: web3.eth.accounts[2]}).should.be.fulfilled;
         });
 
     });

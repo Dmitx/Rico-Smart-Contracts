@@ -111,40 +111,40 @@ contract('rICOTest', function ([_, owner, investor, wallet, accounts]) {
 
     describe('refund methods', function () {
 
-        it('refund() should fail due to no endTime of CrowdSale', async function () {
+        it('refund should fail due to no endTime of CrowdSale', async function () {
             await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
             await increaseTimeTo(this.startTimerICO + duration.days(10));
-            await this.token.refund({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
+            await this.token.burn({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
         });
 
-        it('refund() should pass', async function () {
+        it('refund should pass', async function () {
             await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
             await increaseTimeTo(this.startTimerICO + duration.days(120));
-            await this.token.refund({from: web3.eth.accounts[2]}).should.be.fulfilled;
+            await this.token.burn({from: web3.eth.accounts[2]}).should.be.fulfilled;
         });
 
-        it('refundPart() should fail due to no endTime of CrowdSale', async function () {
+        it('refund part should fail due to no endTime of CrowdSale', async function () {
             await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
             await increaseTimeTo(this.startTimerICO + duration.days(10));
-            await this.token.refund({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
+            await this.token.burn({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
         });
 
-        it('refundPart() should fail due to endRefundableTime', async function () {
+        it('refund part should pass due to endRefundableTime and weiRaised < softCap', async function () {
             await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
             await increaseTimeTo(this.startTimerICO + duration.days(155));
-            await this.token.refund({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
+            await this.token.burn({from: web3.eth.accounts[2]}).should.be.fulfilled;
         });
 
-        it('refundPart() should fail due to weiRaised < hardCap', async function () {
+        it('refund part should pass due to weiRaised < hardCap', async function () {
             await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1, "ether"), gas: "220000"});
             await increaseTimeTo(this.startTimerICO + duration.days(100));
-            await this.token.refund({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
+            await this.token.burn({from: web3.eth.accounts[2]}).should.be.fulfilled;
         });
 
-        it('refundPart() should pass', async function () {
-            await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(1600, "ether"), gas: "220000"});
+        it('refund part should fail due to raised hardCap and finished', async function () {
+            await this.rICO.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(16000, "ether"), gas: "220000"});
             await increaseTimeTo(this.startTimerICO + duration.days(100));
-            await this.token.refund({from: web3.eth.accounts[2]}).should.be.fulfilled;
+            await this.token.burn({from: web3.eth.accounts[2]}).should.be.rejectedWith('revert');
         });
 
     });

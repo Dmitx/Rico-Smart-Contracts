@@ -39,10 +39,9 @@ contract('DividendDistributor', function ([_, owner, investor, wallet, accounts]
             this.startTimePreSale, this.periodPreSale, wallet, this.token.address, minimumInvest, { from: owner }
         );
 
-        await this.token.transferOwnership(this.preSale.address);
-        // await this.token.addAdmin(this.dividendDistributor.address);
+        await this.token.transferOwnership(this.dividendDistributor.address);
 
-        await this.preSale.sendTransaction({from: web3.eth.accounts[1], value: web3.toWei(1, "ether"), gas: "220000"});
+        await this.token.mint(web3.eth.accounts[1], 1e19);
         await this.dividendDistributor.sendTransaction({from: web3.eth.accounts[2], value: web3.toWei(10, "ether"), gas: "220000"});
     });
 
@@ -97,7 +96,7 @@ contract('DividendDistributor', function ([_, owner, investor, wallet, accounts]
 
             const investor1 = web3.eth.accounts[4];
 
-            await this.preSale.sendTransaction({from: investor1, value: web3.toWei(3, "ether"), gas: "220000"}).should.be.fulfilled;
+            await this.token.mint(investor1, 3e19);
 
             let balanceBefore1 = await web3.eth.getBalance(investor1).toNumber();
 
@@ -114,8 +113,8 @@ contract('DividendDistributor', function ([_, owner, investor, wallet, accounts]
             const investor1 = web3.eth.accounts[4];
             const investor2 = web3.eth.accounts[5];
 
-            await this.preSale.sendTransaction({from: investor1, value: web3.toWei(1, "ether"), gas: "220000"}).should.be.fulfilled;
-            await this.preSale.sendTransaction({from: investor2, value: web3.toWei(2, "ether"), gas: "220000"}).should.be.fulfilled;
+            await this.token.mint(investor1, 1e19);
+            await this.token.mint(investor2, 2e19);
 
             let balanceBefore1 = await web3.eth.getBalance(investor1).toNumber();
             let balanceBefore2 = await web3.eth.getBalance(investor2).toNumber();
