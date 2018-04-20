@@ -240,6 +240,13 @@ contract rICO is Ownable, ReentrancyGuard {
         // mint tokens to owner - wallet
         token.mint(wallet, token.totalSupply().mul(42857).div(57143));
         token.finishMinting();
+
+        token.transferOwnership(owner);
+    }
+
+    // Change owner of token after end of CrowdSale if Soft Cap has not raised
+    function changeTokenOwner() public onlyOwner {
+        require(now > endRefundableTime && weiRaised.add(preSale.weiRaised()) < softCap);
         token.transferOwnership(owner);
     }
 

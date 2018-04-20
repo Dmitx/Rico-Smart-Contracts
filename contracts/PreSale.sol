@@ -154,6 +154,12 @@ contract PreSale is Ownable, ReentrancyGuard {
         token.transferOwnership(owner);
     }
 
+    // Change owner of token after end of PreSale if Soft Cap has not raised
+    function changeTokenOwner() public onlyOwner {
+        require(now > endTime && weiRaised < softCap);
+        token.transferOwnership(owner);
+    }
+
     // low level token purchase function
     function buyTokens(address _beneficiary) saleIsOn isUnderHardCap nonReentrant public payable {
         require(_beneficiary != address(0));
