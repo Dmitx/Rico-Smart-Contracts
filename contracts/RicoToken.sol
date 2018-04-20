@@ -417,8 +417,8 @@ contract DividendPayoutToken is AdminBurnableToken {
 
     // invoke this function after each dividend payout
     function increaseDividendPayments(address _investor, uint256 _amount) onlyAdmin public {
-        dividendPayments[_investor] += _amount;
-        totalDividendPayments += _amount;
+        dividendPayments[_investor] = dividendPayments[_investor].add(_amount);
+        totalDividendPayments = totalDividendPayments.add(_amount);
     }
 
     //When transfer tokens decrease dividendPayments for sender and increase for receiver
@@ -430,8 +430,8 @@ contract DividendPayoutToken is AdminBurnableToken {
         bool isTransferred = super.transfer(_to, _value);
 
         uint256 transferredClaims = dividendPayments[msg.sender].mul(_value).div(oldBalanceFrom);
-        dividendPayments[msg.sender] -= transferredClaims;
-        dividendPayments[_to] += transferredClaims;
+        dividendPayments[msg.sender] = dividendPayments[msg.sender].sub(transferredClaims);
+        dividendPayments[_to] = dividendPayments[_to].add(transferredClaims);
 
         return isTransferred;
     }
@@ -444,8 +444,8 @@ contract DividendPayoutToken is AdminBurnableToken {
         bool isTransferred = super.transferFrom(_from, _to, _value);
 
         uint256 transferredClaims = dividendPayments[_from].mul(_value).div(oldBalanceFrom);
-        dividendPayments[_from] -= transferredClaims;
-        dividendPayments[_to] += transferredClaims;
+        dividendPayments[_from] = dividendPayments[_from].sub(transferredClaims);
+        dividendPayments[_to] = dividendPayments[_to].add(transferredClaims);
 
         return isTransferred;
     }
@@ -457,8 +457,8 @@ contract DividendPayoutToken is AdminBurnableToken {
         super.burnForRefund(_burner, _value);
 
         uint256 burnedClaims = dividendPayments[_burner].mul(_value).div(oldBalance);
-        dividendPayments[_burner] -= burnedClaims;
-        totalDividendPayments -= burnedClaims;
+        dividendPayments[_burner] = dividendPayments[_burner].sub(burnedClaims);
+        totalDividendPayments = totalDividendPayments.sub(burnedClaims);
     }
 
 }
